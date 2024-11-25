@@ -8,8 +8,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import { useToast } from "@/hooks/use-toast";
-
 interface Role {
   id: string;
   name: string;
@@ -18,7 +16,6 @@ interface Role {
 
 export default function RolesPage() {
   const [roles, setRoles] = useState<Role[]>([]);
-  const { toast } = useToast();
 
   const defaultRoles = [
     {
