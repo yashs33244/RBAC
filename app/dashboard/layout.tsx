@@ -1,12 +1,11 @@
-// DashboardLayout.tsx
 "use client";
 
-import dynamic from "next/dynamic";
-import React, { Suspense } from "react";
+import React from "react";
+import { useSession } from "next-auth/react";
 import { LayoutDashboard, Users, Shield, Settings, Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { UserMenu } from "@/components/auth/AuthForm";
 import {
   Card,
   CardContent,
@@ -17,18 +16,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-
-// Create a separate client component for session handling
-const AuthWrapper = dynamic(() => import("./AuthWrapper"), {
-  ssr: false,
-  loading: () => <LoadingSkeleton />,
-});
-
-// Create a separate client component for UserMenu
-const UserMenuWrapper = dynamic(() => import("./UserMenuWrapper"), {
-  ssr: false,
-  loading: () => <Skeleton className="h-10 w-full" />,
-});
 
 interface NavItemProps {
   href: string;
@@ -58,27 +45,36 @@ const LoadingSkeleton = () => (
   </div>
 );
 
-function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <AuthWrapper>
-      {(session, pathname) => (
-        <DashboardContent session={session} pathname={pathname}>
-          {children}
-        </DashboardContent>
-      )}
-    </AuthWrapper>
-  );
-}
-
-function DashboardContent({
+export default function DashboardLayout({
   children,
-  session,
-  pathname,
 }: {
   children: React.ReactNode;
-  session: any;
-  pathname: string;
 }) {
+  const { data: session, status } = useSession();
+  const pathname = usePathname();
+
+  if (status === "loading") {
+    return <LoadingSkeleton />;
+  }
+
+  if (status === "unauthenticated") {
+    return (
+      <Card className="max-w-md mx-auto mt-20">
+        <CardHeader>
+          <CardTitle>Access Denied</CardTitle>
+          <CardDescription>
+            Please sign in to access the dashboard
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild className="w-full">
+            <Link href="/auth/signin">Sign In</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const isActive = (path: string) => pathname === path;
 
   const getPageTitle = () => {
@@ -143,19 +139,19 @@ function DashboardContent({
       </nav>
 
       <div className="p-4 border-t">
-        <Suspense fallback={<Skeleton className="h-10 w-full" />}>
-          <UserMenuWrapper />
-        </Suspense>
+        <UserMenu />
       </div>
     </div>
   );
 
   return (
     <div className="min-h-screen flex">
+      {/* Desktop Sidebar */}
       <aside className="hidden lg:block border-r bg-card">
         <Sidebar />
       </aside>
 
+      {/* Mobile Sidebar */}
       <Sheet>
         <SheetTrigger asChild>
           <Button
@@ -170,6 +166,7 @@ function DashboardContent({
         </SheetContent>
       </Sheet>
 
+      {/* Main Content */}
       <div className="flex-1">
         <header className="h-16 border-b flex items-center justify-between px-6 bg-card">
           <h2 className="text-lg font-medium">{getPageTitle()}</h2>
@@ -179,5 +176,3 @@ function DashboardContent({
     </div>
   );
 }
-
-export default DashboardLayout;
