@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,13 +17,12 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogIn, LogOut, Mail } from "lucide-react";
-import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -45,6 +44,7 @@ export function AuthForm({ mode = "signin" }: { mode?: "signin" | "signup" }) {
       name: "",
     },
   });
+  const { toast } = useToast(); // Initialize toast hook
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -64,19 +64,50 @@ export function AuthForm({ mode = "signin" }: { mode?: "signin" | "signup" }) {
             password: values.password,
             callbackUrl: "/dashboard",
           });
+          toast({
+            //@ts-ignore
+            variant: "success",
+            title: "Sign up successful",
+            description:
+              "You have successfully signed up. Now logging you in...",
+          });
         } else {
           throw new Error("Signup failed");
         }
       } else {
         // Handle signin
-        await signIn("credentials", {
+        const result = await signIn("credentials", {
           email: values.email,
           password: values.password,
-          callbackUrl: "/dashboard",
+          redirect: false,
         });
+
+        if (result?.error) {
+          // Show error toast
+          toast({
+            variant: "destructive",
+            title: "Authentication Error",
+            description:
+              result.error === "Account not found. Please sign up first."
+                ? "Account not found. Please sign up first."
+                : "Invalid credentials. Please try again.",
+          });
+        } else {
+          // Success - redirect to dashboard
+          toast({
+            //@ts-ignore
+            variant: "success",
+            title: "Welcome Back!",
+            description: "You have successfully logged in.",
+          });
+        }
       }
     } catch (error) {
-      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+      });
     } finally {
       setIsLoading(false);
     }

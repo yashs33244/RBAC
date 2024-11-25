@@ -1,22 +1,20 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { db } from "@/db";
 
-
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ message: "Method not allowed" });
-  }
-
+// POST handler for sign up
+export async function POST(request: NextRequest) {
   try {
-    const { email, password, name } = req.body;
+    // Parse the request body
+    const body = await request.json();
+    const { email, password, name } = body;
 
     // Validate input
     if (!email || !password) {
-      return res.status(400).json({ message: "Missing required fields" });
+      return NextResponse.json(
+        { message: "Missing required fields" },
+        { status: 400 }
+      );
     }
 
     // Check if user exists
@@ -25,7 +23,10 @@ export default async function handler(
     });
 
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+      return NextResponse.json(
+        { message: "User already exists" },
+        { status: 400 }
+      );
     }
 
     // Hash password
@@ -41,17 +42,24 @@ export default async function handler(
       },
     });
 
-    return res.status(200).json({
-      message: "User created successfully",
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
+    // Return success response
+    return NextResponse.json(
+      {
+        message: "User created successfully",
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        },
       },
-    });
+      { status: 201 }
+    );
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Internal server error" });
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
